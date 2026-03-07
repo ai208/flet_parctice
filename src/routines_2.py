@@ -91,3 +91,4 @@ if __name__ == "__main__":
 # 2. Appの動作確認の時は、The application encountered an error: 'RoutineApp' object has no attribute '_i'　と出た
 #→　iの属性を持っていない 作る前に追加してしまった。 super().__init__忘れ
 # 3. 真っ白になった　エラーはない　何も表示されていない　コントロールがおかしい？
+#        self.routine_list = RoutineList()  とせずに直接　RoutineListを読んでいた。
