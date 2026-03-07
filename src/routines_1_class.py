@@ -12,13 +12,15 @@ class RoutinesItem(ft.Row): # チェックボックスと消去ボタン
         super().__init__() # 初期化 ()を忘れない。
         self.name = name # 名前
         self.checkbox = ft.Checkbox(label= name)
-        self.delete_btn = ft.FloatingActionButton(icon=ft.Icons.DELETE,on_click= lambda e:on_delete(self)) # ①押したら_deleteを実行するボタンを作る。_delete は親に通知するボタン
+        # self.delete_btn = ft.FloatingActionButton(icon=ft.Icons.DELETE,on_click= lambda e:on_delete(self)) # ①押したら_deleteを実行するボタンを作る。_delete は親に通知するボタン
+        # self.delete_btn = ft.FloatingActionButton(icon=ft.Icons.DELETE,on_click = self._delete) # _deleteを使う
+        self.delete_btn = ft.IconButton(icon = ft.Icons.DELETE,on_click = self._delete)
         self.controls = [
             self.checkbox,
             #self.checkbox.label としたら、チェックボックスがなくなる　かっこは残る　
             self.delete_btn,
         ]
-        self._on_delete = on_delete #③ 親要素を消去する関数を実行する
+        self._on_delete = on_delete #③ 親要素を消去する関数を実行する　引数を取る
     def _delete(self,e):#② ボタンで呼び出される。
         self._on_delete(self)
 
@@ -28,16 +30,16 @@ class RoutineList(ft.Column):
         super().__init__()
         self.items=[] # からのitemを持つ
     def add_item(self,name):
-        if name != "":
+        # if name != "": 要らない　add_clickで確認している。
             # item = RoutinesItem(name,self.remove_item) #アイテムを作成する。引数が関数の時は、ラムダ式を使う
             item = RoutinesItem(
                 name,
                 # on_delete=lambda e :self.remove_item(self) #引数を関数で渡す　これだとエラーになる
                 on_delete= self.remove_item # こっちだと上手く動く
             )
-            self.items.append(item) #リストに加える
+            self.items.append(item) #ルーティンリストに加える
             self.controls.append(item) # コントロール(UI)に加える
-            # name = ""　これでもできない
+            # name = "" これでもできない
             self.update()
     def remove_item(self,item):
         self.items.remove(item) #リストから消す
@@ -65,12 +67,19 @@ def main(page:ft.Page):
     # )
     # page.add(view)
     # 書き直し　ボタンの列を作った後に、routinelist との一緒にページに加える
+    def add_clicked(e):
+        if new_routine.value!="":
+            routine_list.add_item(new_routine.value)
+            new_routine.value =""
+            page.update()
     row = ft.Row(
         controls=[
                 new_routine,
-                ft.FloatingActionButton(icon=ft.Icons.ADD, on_click= lambda e:routine_list.add_item(new_routine) )
+                ft.FloatingActionButton(icon=ft.Icons.ADD, on_click= add_clicked ) # .valueをつけないでTextfileを渡していた。
                 ],
     )
+    # add item と　routineを消去する関数を作成する。
+
     page.add(row,routine_list)
 ft.run(main)
 #2026年3月7日実施　見ながら記述した。
@@ -84,7 +93,12 @@ ft.run(main)
 #→ ボタンの引数　呼び出し方？　on_delete が引数だった　super().__init__()とかく
 #5. デリートしたらリストのエラー　何もないと言われる
 #6. チェックボックスで表示される　前直した routienで行った。　何をしたのか不明
-# →　valueとする 
+# →　valueとする　と解決した
 #7. ラムダ式をいつ使うのか？　click との違い　self いるときと要らないとき
-#8. 追加したときに、入力フォームが空白にならない
-# add 関連を見て確認する
+#8. 追加したときに、入力フォームが空白にならない .
+# add 関連を見て確認する　変数はどこで作ったのかを考える　mainで作ったのでmainないで初期化する
+# mainに    new_taskを消去する関数を作る
+
+# 改善案
+# mainのコードを減らす。
+#→　new_routine をListで持つ
