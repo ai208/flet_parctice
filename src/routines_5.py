@@ -110,7 +110,7 @@ class RoutineView(ft.Column):
         done = self.controller.count_done()
         total = self.controller.count_total_task()
         self.status.value = f'本日の完了タスク : {done} /{total}' #こうしないと更新されない
-
+    #コントローラーを変化する
     def on_delete(self,routine):
         # del self.controller.routines[routine.id] 消去はcontrollerでする
         self.controller.delete_item(routine.id)
