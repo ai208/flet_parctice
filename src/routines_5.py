@@ -1,3 +1,7 @@
+#コメント　2026年3月8日　現在　動作確認完了
+# 次にすること　1. 追加機能　(更新できるようにする 累計記録にする　jsonが必要かもしれません,date を使うのでモデルの変更が必要の可能性がある)
+#
+
 import flet as ft
 import uuid
 # 最後はmvcを意識して記述する。
@@ -29,9 +33,10 @@ class RoutineController:
     def toggle_change(self,id,done):
         self.routines[id].done = done
 
-    #これは？
+    #これは？ 取り出し　viewから直接触らないようにするlistの方がいい？
     def get_routines(self):
-        return self.routines.values()
+        # return self.routines.values()
+        return list(self.routines.values())
 
     #完了を数える values とは？ dict の　valueを取り出す
     def count_done(self):
