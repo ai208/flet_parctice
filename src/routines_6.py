@@ -30,9 +30,10 @@ class UserModel:
 
 #アプリの状態 のみにする
 class AppModel:
-    def __init__(self,storage): # dataclass で引数を取る方法
+    def __init__(self,repository): # dataclass で引数を取る方法
         # self.filename = filename storageに渡す
-        self.storage = storage # こっちにデータの保存を任せる
+        # self.storage = storage # こっちにデータの保存を任せる　   repository に渡す
+        self.repository = repository
         self.user : UserModel | None = None
     # user_model : class
     # # routines_model : class # userが持つ
@@ -41,15 +42,33 @@ class AppModel:
     def save(self): # アプリは状態のみ　データの保存
         # with open(self.filename,"w",encoding="utf-8") as f: しない　storage に送る
         #     json.dump(self.all_data,f,ensure_ascii = False,indent = 2)
-        self.storage.save(self.user)
+        # self.storage.save(self.user)
+        self.repository.save(self.user)
+
     def load(self):
         # try:storage に任せる 引っ張てくる
         #     with open(self.filename,"r",encoding="utf-8") as f:
         #         self.all_data =json.load(f)
         # except FileNotFoundError:
         #     self.all_data = []
-        self.user = self.storage.load()
+        # self.user = self.storage.load() storageをしない
+        self.repository.load()
 
+# Service storage 直接にならないようにする。
+# class Routine_Repository:　# いらない今回は
+#     def __init__(self,storage):
+#         self.storage = storage
+#     def save_user(self,user):
+#         self.storage.save(user)
+#     def load_user(self):
+#         return self.storage.load()
+class User_Repository:
+    def __init__(self,storage):
+        self.storage = storage
+    def save_user(self,user):
+        self.storage.save(user)
+    def load_user(self):
+        return self.storage.load()
 
 #データの保存専門
 class JsonStorage:
@@ -75,7 +94,7 @@ class JsonStorage:
                 "name":r.name,
                 "done":r.done,
                 "total_done":r.total_done,
-                "last_done_date":r.last_done_date.isoformat() if user.last_done_date else None # dat をstr にしてjson にできるようにした。
+                "last_done_date":r.last_done_date.isoformat() if r.last_done_date else None # dat をstr にしてjson にできるようにした。
             })
         return {
             "username" : user.username,
@@ -104,10 +123,11 @@ class JsonStorage:
 
 
 # データを保存しておく　データの中身の変更はしない　更新するだけ
-class RoutineController:
-    def __init__(self,app_model):
+class RoutineController: #操作だけをする　Service に送る
+    def __init__(self,app_model,service): # model とサービスにつながっている
         super().__init__()
         self.app = app_model
+        self.service = service
         # self.routines = {} #modelをリストで管理 二重管理になる コントローラーは操作をするだけ
     #追加
     def add_item(self,name):
@@ -121,11 +141,16 @@ class RoutineController:
             if r.id != id
         ] # このロジックが不明
     #変わったものを更新するだけ　変更は別のところがする
-    def toggle_change(self,id,done):
-        # self.routines[id].done = done
-        for r in self.app.user.routines:
-            if r.id == id:
-                r.done = done
+    # def toggle_change(self,id,done): サービスに送る
+    #     # self.routines[id].done = done
+    #     for r in self.app.user.routines:
+    #         if r.id == id:
+    #             r.done = done
+    def toggle_change(self,routine:RoutineModel,done :bool):
+        if done:
+            self.service.complete_routine(routine)
+        else:
+            self.service.undo_routine(routine)
 
     #これは？ 取り出し　viewから直接触らないようにするlistの方がいい？
     def get_routines(self):
@@ -133,26 +158,59 @@ class RoutineController:
         # return list(self.routines.values())
         return self.app.user.routines
 
-    #完了を数える values とは？ dict の　valueを取り出す
-    def count_done(self):
-        return sum(r.done for r in self.app.user.routines)
+    #完了を数える values とは？ dict の　valueを取り出す サービスに送る
+    # def count_done(self):
+    #     return sum(r.done for r in self.app.user.routines)
 
-    #全タスク数のカウント
-    def count_total_task(self):
-        return len(self.app.user.routines)
+    #全タスク数のカウント サービスへ
+    # def count_total_task(self):
+    #     return len(self.app.user.routines)
+
 # user コントローラーも必要になる 一つのモデルに一つ 作成と更新
-class UserController:
+class UserController: # 操作をする
     def __init__(self,app_model):
         super().__init__()
         self.app = app_model
     def create_user(self,username):
         self.app.user = UserModel(username=username)
-    def update_login(self):
+    # def update_login(self): # サービスに送る
+    #     today = date.today()
+    #     user = self.app.user
+    #     if user.last_login != today:
+    #         user.login_streak += 1
+    #     user.last_login = today
+
+# service ビジネスロジック　の担当
+class User_Service:
+    def __init__(self):
+        pass
+    def update_login(self,user): # userのロジックなので、userがいる
         today = date.today()
-        user = self.app.user
         if user.last_login != today:
-            user.login_streak += 1
+            user.login_streak +=1
         user.last_login = today
+
+class Routine_Service:
+    def __init__(self):
+        pass
+    def complete_routine(self,routine):
+        if not routine.done:
+            routine.done = True
+            routine.total_done += 1
+            routine.last_done_date = date.today()
+
+    def undo_routine(self,routine):
+        if routine.done:
+            routine.done = False
+            routine.total_done -= 1
+            routine.last_done_date = None
+    def count_done(self,routine):
+        return sum(r.done for r in routine) # r.done = True の時が1 だからこれを合計すればいい
+    def count_total_task(self,routine):
+        return len(routine)
+
+
+
 
 #Routine item UIの最小単位
 @ft.control
